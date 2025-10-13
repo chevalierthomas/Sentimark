@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { markets } from '../data/markets.js';
 import { asyncHandler } from '../utils/async-handler.js';
+import { fetchMarketNews } from '../services/market-news-client.js';
 
 const router = Router();
 
@@ -21,6 +22,19 @@ router.get(
       .slice(0, 12);
 
     res.json(filtered);
+  })
+);
+
+router.get(
+  '/:symbol/news',
+  asyncHandler(async (req, res) => {
+    const symbol = req.params.symbol.toString();
+    const items = await fetchMarketNews(symbol);
+
+    res.json({
+      symbol: symbol.toUpperCase(),
+      items
+    });
   })
 );
 

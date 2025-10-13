@@ -25,6 +25,9 @@ npm install
 npm run dev
 ```
 
+> **Note**
+> The frontend now targets Vite 4 so it can run on Node.js 16 LTS or newer, matching the constraints of older development machines.
+
 Create a `.env` file based on `.env.example` if you need to override the default API URL.
 
 ## Backend (Node.js + Express)
@@ -32,6 +35,7 @@ Create a `.env` file based on `.env.example` if you need to override the default
 The backend exposes:
 
 - `GET /api/markets` – search endpoint with server-side filtering
+- `GET /api/markets/:symbol/news` – proxies sentiment headlines via Axios (falls back to demo data when no API is configured)
 - `POST /api/auth/login` – credential check returning short-lived JWTs
 
 Security middleware such as Helmet, CORS, and request logging with Morgan are pre-configured.
@@ -45,7 +49,9 @@ cp .env.example .env
 npm run dev
 ```
 
-Update the `JWT_SECRET` value in `.env` before running in production.
+Update the `JWT_SECRET` value in `.env` before running in production. Provide a `MARKET_NEWS_URL` (and optional `MARKET_NEWS_KEY`) to enable live Axios calls to your preferred market data provider.
+
+Interactive API documentation is available once the server is running at `http://localhost:4000/api/docs` (with the raw OpenAPI JSON at `/api/docs.json`).
 
 ## Development notes
 

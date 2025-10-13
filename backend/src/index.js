@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import authRouter from './routes/auth.js';
 import marketsRouter from './routes/markets.js';
 import { errorHandler } from './middleware/error-handler.js';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerDocument } from './docs/swagger.js';
 
 dotenv.config();
 
@@ -20,6 +22,11 @@ app.use(
 );
 app.use(express.json());
 app.use(morgan('dev'));
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.get('/api/docs.json', (req, res) => {
+  res.json(swaggerDocument);
+});
 
 app.use('/api/auth', authRouter);
 app.use('/api/markets', marketsRouter);
