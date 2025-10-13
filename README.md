@@ -1,0 +1,2 @@
+# Sentimark
+Analysing market sentiment
