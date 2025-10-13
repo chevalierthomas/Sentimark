@@ -34,9 +34,9 @@ Create a `.env` file based on `.env.example` if you need to override the default
 
 The backend exposes:
 
-- `GET /api/markets` – search endpoint with server-side filtering
+- `GET /api/markets` – search endpoint with server-side filtering backed by PostgreSQL
 - `GET /api/markets/:symbol/news` – proxies sentiment headlines via Axios (falls back to demo data when no API is configured)
-- `POST /api/auth/login` – credential check returning short-lived JWTs
+- `POST /api/auth/login` – credential check returning short-lived JWTs using database-backed users
 
 Security middleware such as Helmet, CORS, and request logging with Morgan are pre-configured.
 
@@ -53,8 +53,24 @@ Update the `JWT_SECRET` value in `.env` before running in production. Provide a 
 
 Interactive API documentation is available once the server is running at `http://localhost:4000/api/docs` (with the raw OpenAPI JSON at `/api/docs.json`).
 
+### Database
+
+Sentimark uses PostgreSQL for persistent storage. A schema and seed dataset are included under `backend/db/`.
+
+1. Create a PostgreSQL database (for example `sentimark_dev`).
+2. Apply the schema and seed data:
+
+   ```bash
+   psql postgresql://<user>:<password>@localhost:5432/sentimark_dev -f db/schema.sql
+   psql postgresql://<user>:<password>@localhost:5432/sentimark_dev -f db/seed.sql
+   ```
+
+3. Configure the connection in `backend/.env`. You can either set a `DATABASE_URL` or individual connection fields (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`). Set `DB_SSL=true` if your provider requires TLS.
+
+> The seed user is `avery@sentimark.ai` with password `Sentimark!2024`. The seed markets cover major tickers across US, EU, and APAC exchanges.
+
 ## Development notes
 
-- The demo user uses the email `avery@sentimark.ai` with password `Sentimark!2024`.
 - API stubs can be replaced with live market and authentication providers as the project evolves.
 - Axios is used on both client and server for consistent HTTP handling when integrating external APIs.
+- Database access is centralised through lightweight repository modules to keep route handlers focused on HTTP concerns.

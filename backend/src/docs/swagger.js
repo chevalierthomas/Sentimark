@@ -70,6 +70,9 @@ export const swaggerDocument = {
                       type: 'string',
                       example: 'AAPL'
                     },
+                    market: {
+                      $ref: '#/components/schemas/Market'
+                    },
                     items: {
                       type: 'array',
                       items: {
@@ -116,11 +119,19 @@ export const swaggerDocument = {
                 schema: {
                   type: 'object',
                   properties: {
-                    token: {
-                      type: 'string'
-                    },
                     user: {
                       $ref: '#/components/schemas/User'
+                    },
+                    tokens: {
+                      type: 'object',
+                      properties: {
+                        accessToken: {
+                          type: 'string'
+                        },
+                        refreshToken: {
+                          type: 'string'
+                        }
+                      }
                     }
                   }
                 }
@@ -150,9 +161,6 @@ export const swaggerDocument = {
           exchange: {
             type: 'string',
             example: 'NASDAQ'
-          },
-          sector: {
-            type: 'string'
           }
         }
       },
@@ -194,8 +202,11 @@ export const swaggerDocument = {
           name: {
             type: 'string'
           },
-          role: {
-            type: 'string'
+          roles: {
+            type: 'array',
+            items: {
+              type: 'string'
+            }
           }
         }
       }

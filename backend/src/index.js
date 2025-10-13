@@ -1,15 +1,14 @@
+import './config/env.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import authRouter from './routes/auth.js';
 import marketsRouter from './routes/markets.js';
 import { errorHandler } from './middleware/error-handler.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerDocument } from './docs/swagger.js';
-
-dotenv.config();
+import { initDatabase } from './db/index.js';
 
 const app = express();
 
@@ -26,6 +25,11 @@ app.use(morgan('dev'));
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.get('/api/docs.json', (req, res) => {
   res.json(swaggerDocument);
+});
+
+await initDatabase().catch((error) => {
+  console.error('Failed to connect to the database', error);
+  process.exit(1);
 });
 
 app.use('/api/auth', authRouter);

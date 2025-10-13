@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import bcrypt from 'bcryptjs';
-import { users } from '../data/users.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { createAccessToken, createRefreshToken } from '../utils/token.js';
+import { authenticateUser } from '../services/auth-service.js';
 
 const router = Router();
 
@@ -16,14 +15,8 @@ router.post(
       return;
     }
 
-    const user = users.find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+    const user = await authenticateUser(email, password);
     if (!user) {
-      res.status(401).json({ message: 'Invalid credentials.' });
-      return;
-    }
-
-    const passwordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!passwordValid) {
       res.status(401).json({ message: 'Invalid credentials.' });
       return;
     }
