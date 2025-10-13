@@ -9,7 +9,7 @@ function ensureDatabaseConfig() {
 
   if (!hasConnectionString && !hasIndividualConfig) {
     throw new Error(
-      'Database configuration missing. Set DATABASE_URL or DB_HOST/DB_NAME/DB_USER in your environment.'
+      'Database configuration missing. Provide DATABASE_URL or DB_HOST/DB_NAME/DB_USER (see backend/.env.example or backend/.env.development).'
     );
   }
 }

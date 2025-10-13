@@ -49,6 +49,8 @@ cp .env.example .env
 npm run dev
 ```
 
+`.env.development` is loaded automatically when a custom `.env` is not present. It targets the bundled Docker database (see below) using the `sentimark_app` user and `sentimark_dev` database.
+
 Update the `JWT_SECRET` value in `.env` before running in production. Provide a `MARKET_NEWS_URL` (and optional `MARKET_NEWS_KEY`) to enable live Axios calls to your preferred market data provider.
 
 Interactive API documentation is available once the server is running at `http://localhost:4000/api/docs` (with the raw OpenAPI JSON at `/api/docs.json`).
@@ -56,6 +58,18 @@ Interactive API documentation is available once the server is running at `http:/
 ### Database
 
 Sentimark uses PostgreSQL for persistent storage. A schema and seed dataset are included under `backend/db/`.
+
+#### Quick start with Docker
+
+```bash
+docker compose up -d postgres
+cd backend
+DATABASE_URL=postgres://sentimark_app:sentimark_app@localhost:5432/sentimark_dev npm run db:reset
+```
+
+This will launch PostgreSQL 15 with persistent storage and apply the schema plus demo records.
+
+#### Manual setup
 
 1. Create a PostgreSQL database (for example `sentimark_dev`).
 2. Apply the schema and seed data:
@@ -73,4 +87,4 @@ Sentimark uses PostgreSQL for persistent storage. A schema and seed dataset are 
 
 - API stubs can be replaced with live market and authentication providers as the project evolves.
 - Axios is used on both client and server for consistent HTTP handling when integrating external APIs.
-- Database access is centralised through lightweight repository modules to keep route handlers focused on HTTP concerns.
+- Database access is centralised through lightweight repository modules to keep route handlers focused on HTTP concerns. Use `npm run db:migrate`, `npm run db:seed`, or `npm run db:reset` inside `backend/` to manage your local schema.

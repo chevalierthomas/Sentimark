@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: sentimark-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sentimark_dev
+      POSTGRES_USER: sentimark_app
+      POSTGRES_PASSWORD: sentimark_app
+    ports:
+      - '5432:5432'
+    volumes:
+      - sentimark_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sentimark_app -d sentimark_dev']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sentimark_pgdata:
