@@ -4,7 +4,11 @@
       <h1>Sentimark</h1>
       <nav>
         <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/login">Login</RouterLink>
+        <RouterLink v-if="!isAuthenticated" to="/login">Login</RouterLink>
+        <div v-else class="user-menu">
+          <span class="user-name">{{ userName }}</span>
+          <button type="button" class="logout" @click="onLogout">Logout</button>
+        </div>
       </nav>
     </header>
     <main class="app-main">
@@ -17,10 +21,21 @@
 </template>
 
 <script setup>
-import { RouterLink, RouterView } from 'vue-router';
 import { computed } from 'vue';
+import { RouterLink, RouterView, useRouter } from 'vue-router';
+import { useAuth } from './stores/auth';
 
 const currentYear = computed(() => new Date().getFullYear());
+const auth = useAuth();
+const router = useRouter();
+
+const isAuthenticated = computed(() => auth.isAuthenticated.value);
+const userName = computed(() => auth.user.value?.name ?? 'Analyst');
+
+const onLogout = () => {
+  auth.logout();
+  router.push('/');
+};
 </script>
 
 <style scoped>
@@ -49,6 +64,7 @@ const currentYear = computed(() => new Date().getFullYear());
 nav {
   display: flex;
   gap: 1rem;
+  align-items: center;
 }
 
 nav a {
@@ -59,6 +75,33 @@ nav a {
 
 nav a.router-link-exact-active {
   opacity: 0.6;
+}
+
+.user-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-name {
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.logout {
+  border: 1px solid rgba(226, 232, 240, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  background: transparent;
+  color: #f8fafc;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.logout:hover {
+  background: rgba(248, 250, 252, 0.15);
+  color: #e0e7ff;
 }
 
 .app-main {

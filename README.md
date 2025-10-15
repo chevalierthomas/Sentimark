@@ -14,8 +14,10 @@ Sentimark/
 ## Frontend (Vue 3 + Vite)
 
 The welcome screen showcases a company discovery bar with keyboard-friendly autocompletion and a
-secure login form. Axios is configured with an interceptor to safely communicate with the
-backend.
+secure login form. Once authenticated you can jump straight from the search suggestions to a
+company dashboard that visualises fundamentals, recent pricing, and curated sentiment headlines.
+Axios is configured with an interceptor to safely communicate with the backend and automatically
+attaches your JWT access token after sign-in.
 
 ### Getting started
 
@@ -35,8 +37,12 @@ Create a `.env` file based on `.env.example` if you need to override the default
 The backend exposes:
 
 - `GET /api/companies` – search endpoint with server-side filtering backed by PostgreSQL
+- `GET /api/companies/:symbol` – detailed fundamentals and news snapshot (requires a bearer token)
 - `GET /api/companies/:symbol/news` – proxies sentiment headlines via Axios (falls back to demo data when no API is configured)
 - `POST /api/auth/login` – credential check returning short-lived JWTs using database-backed users
+
+Requests to the snapshot endpoint must include an `Authorization: Bearer <accessToken>` header
+using the token returned from the login route.
 
 Security middleware such as Helmet, CORS, and request logging with Morgan are pre-configured.
 

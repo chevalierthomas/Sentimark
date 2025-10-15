@@ -103,8 +103,9 @@ const onEnter = () => {
 };
 
 const selectSuggestion = (suggestion) => {
-  query.value = `${suggestion.symbol} — ${suggestion.name}`;
-  emit('select', suggestion);
+  const normalizedSymbol = suggestion.symbol?.toUpperCase?.() ?? suggestion.symbol;
+  query.value = `${normalizedSymbol} — ${suggestion.name}`;
+  emit('select', { ...suggestion, symbol: normalizedSymbol });
   showSuggestions.value = false;
 };
 

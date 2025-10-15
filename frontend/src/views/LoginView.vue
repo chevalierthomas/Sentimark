@@ -48,7 +48,9 @@
 
 <script setup>
 import { reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { login } from '../api/auth';
+import { useAuth } from '../stores/auth';
 
 const form = reactive({
   email: '',
@@ -60,6 +62,9 @@ const showPassword = ref(false);
 const loading = ref(false);
 const error = ref('');
 const success = ref('');
+const router = useRouter();
+const route = useRoute();
+const auth = useAuth();
 
 const onSubmit = async () => {
   error.value = '';
@@ -71,7 +76,10 @@ const onSubmit = async () => {
       password: form.password,
       remember: form.remember
     });
+    auth.login(payload.user, payload.tokens);
     success.value = `Welcome back, ${payload.user.name}!`;
+    const redirectTarget = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
+    await router.push(redirectTarget);
   } catch (err) {
     error.value = err.response?.data?.message ?? 'Unable to sign in with those credentials.';
   } finally {

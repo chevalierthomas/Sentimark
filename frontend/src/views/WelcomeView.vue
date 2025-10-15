@@ -10,13 +10,12 @@
       <SearchBar @select="onSelection" />
       <Transition name="fade">
         <div v-if="selection" class="selection-result">
-          <p v-if="selection.symbol">
-            Ready to analyze <strong>{{ selection.symbol }}</strong> — {{ selection.name }}.
-          </p>
-          <p v-else>
+          <p>
             Searching for <strong>{{ selection.query }}</strong>.
           </p>
-          <RouterLink class="cta" to="/login">Sign in to view sentiment dashboards</RouterLink>
+          <RouterLink class="cta" :to="{ name: 'login' }">
+            Sign in to view sentiment dashboards
+          </RouterLink>
         </div>
       </Transition>
     </div>
@@ -51,14 +50,30 @@
 
 <script setup>
 import { ref } from 'vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import SearchBar from '../components/SearchBar.vue';
+import { useAuth } from '../stores/auth';
 
 const selection = ref(null);
+const router = useRouter();
+const auth = useAuth();
 
 const onSelection = (result) => {
+  if (result.symbol) {
+    const symbol = result.symbol?.toString().toUpperCase?.() ?? result.symbol;
+    const destination = { name: 'company-detail', params: { symbol } };
+    const resolved = router.resolve(destination);
+    if (auth.isAuthenticated.value) {
+      router.push(destination);
+    } else {
+      router.push({ name: 'login', query: { redirect: resolved.href } });
+    }
+    return;
+  }
+
   selection.value = result;
 };
+
 </script>
 
 <style scoped>

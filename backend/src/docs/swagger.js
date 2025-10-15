@@ -4,7 +4,7 @@ export const swaggerDocument = {
     title: 'Sentimark API',
     description:
       'API documentation for the Sentimark sentiment platform. Endpoints surface company discovery, authentication, and sample sentiment feeds.',
-    version: '0.2.0'
+    version: '0.3.0'
   },
   servers: [
     {
@@ -40,6 +40,75 @@ export const swaggerDocument = {
                 }
               }
             }
+          }
+        }
+      }
+    },
+    '/api/companies/{symbol}': {
+      get: {
+        summary: 'Retrieve a detailed company snapshot',
+        security: [{
+          bearerAuth: []
+        }],
+        parameters: [
+          {
+            name: 'symbol',
+            in: 'path',
+            required: true,
+            description: 'Ticker symbol to query',
+            schema: {
+              type: 'string'
+            }
+          }
+        ],
+        responses: {
+          200: {
+            description: 'Snapshot of the requested company including market data and recent news',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    company: {
+                      $ref: '#/components/schemas/Company'
+                    },
+                    latestPrice: {
+                      $ref: '#/components/schemas/StockPrice'
+                    },
+                    priceHistory: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/StockPrice'
+                      }
+                    },
+                    financials: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/FinancialSnapshot'
+                      }
+                    },
+                    news: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/NewsItem'
+                      }
+                    },
+                    indices: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/IndexMembership'
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          401: {
+            description: 'Authentication required'
+          },
+          404: {
+            description: 'Company not found'
           }
         }
       }
@@ -180,6 +249,24 @@ export const swaggerDocument = {
           country: {
             type: 'string',
             example: 'United States'
+          },
+          website: {
+            type: 'string',
+            format: 'uri',
+            example: 'https://www.apple.com'
+          },
+          foundedYear: {
+            type: 'integer',
+            example: 1976
+          },
+          employees: {
+            type: 'integer',
+            example: 160000
+          },
+          marketCap: {
+            type: 'number',
+            format: 'double',
+            example: 2800000000000
           }
         }
       },
@@ -190,19 +277,19 @@ export const swaggerDocument = {
             type: 'string',
             format: 'date-time'
           },
-          open_price: {
+          open: {
             type: 'number',
             format: 'double'
           },
-          close_price: {
+          close: {
             type: 'number',
             format: 'double'
           },
-          high_price: {
+          high: {
             type: 'number',
             format: 'double'
           },
-          low_price: {
+          low: {
             type: 'number',
             format: 'double'
           },
@@ -219,7 +306,7 @@ export const swaggerDocument = {
       FinancialSnapshot: {
         type: 'object',
         properties: {
-          fiscal_year: {
+          fiscalYear: {
             type: 'integer',
             example: 2023
           },
@@ -227,7 +314,7 @@ export const swaggerDocument = {
             type: 'number',
             format: 'double'
           },
-          net_income: {
+          netIncome: {
             type: 'number',
             format: 'double'
           },
@@ -235,15 +322,15 @@ export const swaggerDocument = {
             type: 'number',
             format: 'double'
           },
-          pe_ratio: {
+          peRatio: {
             type: 'number',
             format: 'double'
           },
-          dividend_yield: {
+          dividendYield: {
             type: 'number',
             format: 'double'
           },
-          debt_to_equity: {
+          debtToEquity: {
             type: 'number',
             format: 'double'
           },
@@ -251,7 +338,7 @@ export const swaggerDocument = {
             type: 'number',
             format: 'double'
           },
-          free_cash_flow: {
+          freeCashFlow: {
             type: 'number',
             format: 'double'
           }
@@ -261,15 +348,18 @@ export const swaggerDocument = {
         type: 'object',
         properties: {
           id: {
-            type: 'string'
-          },
-          headline: {
-            type: 'string'
-          },
-          summary: {
-            type: 'string'
+            oneOf: [
+              { type: 'integer' },
+              { type: 'string' }
+            ]
           },
           source: {
+            type: 'string'
+          },
+          title: {
+            type: 'string'
+          },
+          content: {
             type: 'string'
           },
           url: {
@@ -279,6 +369,31 @@ export const swaggerDocument = {
           publishedAt: {
             type: 'string',
             format: 'date-time'
+          },
+          sentiment: {
+            type: 'number',
+            format: 'double',
+            example: 0.32
+          }
+        }
+      },
+      IndexMembership: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'integer'
+          },
+          name: {
+            type: 'string',
+            example: 'S&P 500'
+          },
+          country: {
+            type: 'string',
+            example: 'United States'
+          },
+          currency: {
+            type: 'string',
+            example: 'USD'
           }
         }
       },
@@ -302,6 +417,13 @@ export const swaggerDocument = {
             }
           }
         }
+      }
+    },
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT'
       }
     }
   }
