@@ -3,8 +3,8 @@ export const swaggerDocument = {
   info: {
     title: 'Sentimark API',
     description:
-      'API documentation for the Sentimark market sentiment platform. Replace the demo data with live providers as integrations evolve.',
-    version: '0.1.0'
+      'API documentation for the Sentimark sentiment platform. Endpoints surface company discovery, authentication, and sample sentiment feeds.',
+    version: '0.2.0'
   },
   servers: [
     {
@@ -13,14 +13,14 @@ export const swaggerDocument = {
     }
   ],
   paths: {
-    '/api/markets': {
+    '/api/companies': {
       get: {
-        summary: 'Search available markets',
+        summary: 'Search available companies',
         parameters: [
           {
             name: 'q',
             in: 'query',
-            description: 'Market symbol, company name, or exchange filter',
+            description: 'Company ticker, name, exchange, sector, or country filter',
             required: false,
             schema: {
               type: 'string'
@@ -29,13 +29,13 @@ export const swaggerDocument = {
         ],
         responses: {
           200: {
-            description: 'Filtered market list',
+            description: 'Filtered company list',
             content: {
               'application/json': {
                 schema: {
                   type: 'array',
                   items: {
-                    $ref: '#/components/schemas/Market'
+                    $ref: '#/components/schemas/Company'
                   }
                 }
               }
@@ -44,15 +44,15 @@ export const swaggerDocument = {
         }
       }
     },
-    '/api/markets/{symbol}/news': {
+    '/api/companies/{symbol}/news': {
       get: {
-        summary: 'Retrieve sentiment news for a market',
+        summary: 'Retrieve sentiment news for a company',
         parameters: [
           {
             name: 'symbol',
             in: 'path',
             required: true,
-            description: 'Market symbol to query',
+            description: 'Ticker symbol to query',
             schema: {
               type: 'string'
             }
@@ -60,7 +60,7 @@ export const swaggerDocument = {
         ],
         responses: {
           200: {
-            description: 'Collection of news items for the requested symbol',
+            description: 'Collection of news items for the requested company',
             content: {
               'application/json': {
                 schema: {
@@ -70,8 +70,8 @@ export const swaggerDocument = {
                       type: 'string',
                       example: 'AAPL'
                     },
-                    market: {
-                      $ref: '#/components/schemas/Market'
+                    company: {
+                      $ref: '#/components/schemas/Company'
                     },
                     items: {
                       type: 'array',
@@ -83,6 +83,9 @@ export const swaggerDocument = {
                 }
               }
             }
+          },
+          404: {
+            description: 'Company not found'
           }
         }
       }
@@ -147,9 +150,13 @@ export const swaggerDocument = {
   },
   components: {
     schemas: {
-      Market: {
+      Company: {
         type: 'object',
         properties: {
+          id: {
+            type: 'integer',
+            example: 1
+          },
           symbol: {
             type: 'string',
             example: 'AAPL'
@@ -161,6 +168,92 @@ export const swaggerDocument = {
           exchange: {
             type: 'string',
             example: 'NASDAQ'
+          },
+          sector: {
+            type: 'string',
+            example: 'Technology'
+          },
+          industry: {
+            type: 'string',
+            example: 'Consumer Electronics'
+          },
+          country: {
+            type: 'string',
+            example: 'United States'
+          }
+        }
+      },
+      StockPrice: {
+        type: 'object',
+        properties: {
+          timestamp: {
+            type: 'string',
+            format: 'date-time'
+          },
+          open_price: {
+            type: 'number',
+            format: 'double'
+          },
+          close_price: {
+            type: 'number',
+            format: 'double'
+          },
+          high_price: {
+            type: 'number',
+            format: 'double'
+          },
+          low_price: {
+            type: 'number',
+            format: 'double'
+          },
+          volume: {
+            type: 'integer',
+            format: 'int64'
+          },
+          currency: {
+            type: 'string',
+            example: 'USD'
+          }
+        }
+      },
+      FinancialSnapshot: {
+        type: 'object',
+        properties: {
+          fiscal_year: {
+            type: 'integer',
+            example: 2023
+          },
+          revenue: {
+            type: 'number',
+            format: 'double'
+          },
+          net_income: {
+            type: 'number',
+            format: 'double'
+          },
+          eps: {
+            type: 'number',
+            format: 'double'
+          },
+          pe_ratio: {
+            type: 'number',
+            format: 'double'
+          },
+          dividend_yield: {
+            type: 'number',
+            format: 'double'
+          },
+          debt_to_equity: {
+            type: 'number',
+            format: 'double'
+          },
+          roe: {
+            type: 'number',
+            format: 'double'
+          },
+          free_cash_flow: {
+            type: 'number',
+            format: 'double'
           }
         }
       },

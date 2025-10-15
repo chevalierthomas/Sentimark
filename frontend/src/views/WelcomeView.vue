@@ -2,9 +2,9 @@
   <section class="welcome">
     <div class="hero">
       <p class="eyebrow">Market Sentiment Intelligence</p>
-      <h2>Discover how investors feel about the markets in real time.</h2>
+      <h2>Discover how investors feel about the companies you follow in real time.</h2>
       <p class="subtitle">
-        Start by searching for a stock, index, or ETF to reveal news coverage, social media
+        Start by searching for a company, index, or ETF to reveal news coverage, social media
         activity, and AI-driven sentiment insights tailored for informed decision-making.
       </p>
       <SearchBar @select="onSelection" />

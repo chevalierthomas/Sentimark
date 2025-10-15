@@ -4,7 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import authRouter from './routes/auth.js';
-import marketsRouter from './routes/markets.js';
+import companiesRouter from './routes/companies.js';
 import { errorHandler } from './middleware/error-handler.js';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerDocument } from './docs/swagger.js';
@@ -33,7 +33,7 @@ await initDatabase().catch((error) => {
 });
 
 app.use('/api/auth', authRouter);
-app.use('/api/markets', marketsRouter);
+app.use('/api/companies', companiesRouter);
 
 app.use(errorHandler);
 

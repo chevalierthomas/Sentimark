@@ -1,9 +1,9 @@
 <template>
   <div class="search-bar">
-    <label class="search-label" for="market-search">Find a market</label>
+    <label class="search-label" for="company-search">Find a company</label>
     <div class="input-wrapper" ref="wrapperRef">
       <input
-        id="market-search"
+        id="company-search"
         v-model="query"
         type="search"
         :placeholder="placeholder"
@@ -29,7 +29,7 @@
         </li>
       </ul>
       <p v-else-if="showSuggestions && !loading && !suggestions.length" class="empty-state">
-        No markets found.
+        No companies found.
       </p>
       <p v-if="error" class="error">{{ error }}</p>
     </div>
@@ -38,12 +38,12 @@
 
 <script setup>
 import { onMounted, onUnmounted, ref, watch } from 'vue';
-import { fetchMarkets } from '../api/markets';
+import { fetchCompanies } from '../api/companies';
 
 const props = defineProps({
   placeholder: {
     type: String,
-    default: 'Search by name or ticker symbol'
+    default: 'Search by company name or ticker'
   }
 });
 
@@ -62,11 +62,11 @@ const fetchSuggestions = async () => {
   loading.value = true;
   error.value = '';
   try {
-    const results = await fetchMarkets(query.value.trim());
+    const results = await fetchCompanies(query.value.trim());
     suggestions.value = results;
     highlightedIndex.value = -1;
   } catch (err) {
-    error.value = 'Unable to load markets. Please try again.';
+    error.value = 'Unable to load companies. Please try again.';
   } finally {
     loading.value = false;
   }

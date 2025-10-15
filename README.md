@@ -13,7 +13,7 @@ Sentimark/
 
 ## Frontend (Vue 3 + Vite)
 
-The welcome screen showcases a market search bar with keyboard-friendly autocompletion and a
+The welcome screen showcases a company discovery bar with keyboard-friendly autocompletion and a
 secure login form. Axios is configured with an interceptor to safely communicate with the
 backend.
 
@@ -34,8 +34,8 @@ Create a `.env` file based on `.env.example` if you need to override the default
 
 The backend exposes:
 
-- `GET /api/markets` – search endpoint with server-side filtering backed by PostgreSQL
-- `GET /api/markets/:symbol/news` – proxies sentiment headlines via Axios (falls back to demo data when no API is configured)
+- `GET /api/companies` – search endpoint with server-side filtering backed by PostgreSQL
+- `GET /api/companies/:symbol/news` – proxies sentiment headlines via Axios (falls back to demo data when no API is configured)
 - `POST /api/auth/login` – credential check returning short-lived JWTs using database-backed users
 
 Security middleware such as Helmet, CORS, and request logging with Morgan are pre-configured.
@@ -51,13 +51,19 @@ npm run dev
 
 `.env.development` is loaded automatically when a custom `.env` is not present. It targets the bundled Docker database (see below) using the `sentimark_app` user and `sentimark_dev` database.
 
-Update the `JWT_SECRET` value in `.env` before running in production. Provide a `MARKET_NEWS_URL` (and optional `MARKET_NEWS_KEY`) to enable live Axios calls to your preferred market data provider.
+Update the `JWT_SECRET` value in `.env` before running in production. Provide a `MARKET_NEWS_URL` (and optional `MARKET_NEWS_KEY`) to enable live Axios calls to your preferred company news provider.
 
 Interactive API documentation is available once the server is running at `http://localhost:4000/api/docs` (with the raw OpenAPI JSON at `/api/docs.json`).
 
 ### Database
 
-Sentimark uses PostgreSQL for persistent storage. A schema and seed dataset are included under `backend/db/`.
+Sentimark uses PostgreSQL for persistent storage. A schema and seed dataset are included under `backend/db/` and define:
+
+- `companies` – canonical reference data for issuers (ticker, exchange, fundamentals)
+- `stock_prices` – time series of daily price and volume snapshots
+- `financials` – annual fundamentals such as revenue, EPS, and free cash flow
+- `news` – curated sentiment scores for recent company headlines
+- `indices` & `index_memberships` – index compositions for grouping related companies
 
 #### Quick start with Docker
 
@@ -81,7 +87,7 @@ This will launch PostgreSQL 15 with persistent storage and apply the schema plus
 
 3. Configure the connection in `backend/.env`. You can either set a `DATABASE_URL` or individual connection fields (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`). Set `DB_SSL=true` if your provider requires TLS.
 
-> The seed user is `avery@sentimark.ai` with password `Sentimark!2024`. The seed markets cover major tickers across US, EU, and APAC exchanges.
+> The seed user is `avery@sentimark.ai` with password `Sentimark!2024`. The seed companies cover major tickers across US, EU, and APAC exchanges.
 
 ## Development notes
 

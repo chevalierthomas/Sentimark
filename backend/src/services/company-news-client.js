@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export async function fetchMarketNews(symbol) {
+export async function fetchCompanyNews(symbol) {
   const baseURL = process.env.MARKET_NEWS_URL;
 
   if (!baseURL) {
@@ -10,7 +10,7 @@ export async function fetchMarketNews(symbol) {
         id: `demo-${uppercaseSymbol}`,
         headline: `${uppercaseSymbol} sentiment feed placeholder`,
         summary:
-          'Connect MARKET_NEWS_URL and MARKET_NEWS_KEY in your environment to proxy real market headlines.',
+          'Connect MARKET_NEWS_URL and MARKET_NEWS_KEY in your environment to proxy real company headlines.',
         source: 'Sentimark Demo',
         url: 'https://sentimark.localhost/news',
         publishedAt: new Date().toISOString()
