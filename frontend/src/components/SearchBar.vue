@@ -75,7 +75,7 @@ const fetchSuggestions = async () => {
 const onInput = () => {
   clearTimeout(debounceTimeout);
   debounceTimeout = setTimeout(() => {
-    if (query.value.trim().length < 2) {
+    if (query.value.trim().length < 1) {
       suggestions.value = [];
       return;
     }
@@ -163,8 +163,14 @@ input[type='search'] {
   border-radius: 999px;
   border: 1px solid #cbd5f5;
   background: #fff;
+  color: #0f172a;
   font-size: 1rem;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+input[type='search']::placeholder {
+  color: #475569;
+  opacity: 1;
 }
 
 input[type='search']:focus {

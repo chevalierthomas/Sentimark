@@ -14,14 +14,26 @@ export async function listMarkets(limit = 10) {
 }
 
 export async function searchMarkets(term, limit = 12) {
+  const likeTerm = `%${term}%`;
+  const prefixTerm = `${term}%`;
+
   const { rows } = await db.query(
     `${BASE_SELECT}
      where symbol ilike $1
         or name ilike $1
         or exchange ilike $1
-     order by symbol asc
-     limit $2`,
-    [`%${term}%`, limit]
+     order by
+        case
+          when symbol ilike $2 then 0
+          when name ilike $2 then 1
+          when symbol ilike $1 then 2
+          when name ilike $1 then 3
+          when exchange ilike $1 then 4
+          else 5
+        end,
+        symbol asc
+     limit $3`,
+    [likeTerm, prefixTerm, limit]
   );
 
   return rows;
