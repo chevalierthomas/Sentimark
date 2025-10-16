@@ -31,9 +31,10 @@
               <span class="label">Employees</span>
               <strong>{{ formatNumber(company.employees) }}</strong>
             </div>
-            <div class="metric-card">
-              <span class="label">Indices</span>
-              <strong>{{ indices.length ? indices.map((index) => index.name).join(', ') : '—' }}</strong>
+            <div class="metric-card" v-if="company.exchange">
+              <span class="label">Exchange</span>
+              <strong>{{ company.exchange }}</strong>
+              <span v-if="latestPrice" class="note">Trades in {{ currencyCode }}</span>
             </div>
           </div>
           <ul v-if="indices.length" class="index-badges">
@@ -49,15 +50,15 @@
             Visit corporate site ↗
           </a>
         </div>
-        <aside class="price" v-if="latestPrice">
-          <div class="price-header">
+        <aside class="panel price-panel" v-if="latestPrice">
+          <header class="price-header">
             <p class="label">Latest close</p>
             <h3>{{ formatCurrency(latestPrice.close, currencyCode) }}</h3>
             <p v-if="priceTrend" class="price-delta" :class="priceTrend.direction">
               {{ formatSignedCurrency(priceTrend.change, currencyCode) }}
               <span v-if="priceTrend.percent != null">({{ formatSignedPercent(priceTrend.percent) }})</span>
             </p>
-          </div>
+          </header>
           <figure v-if="priceSparkline" class="sparkline">
             <svg :viewBox="`0 0 ${priceSparkline.width} ${priceSparkline.height}`" role="img" aria-label="Recent price trend">
               <defs>
@@ -74,37 +75,102 @@
               <span>Low {{ formatCurrency(priceSparkline.min, currencyCode) }}</span>
             </figcaption>
           </figure>
-          <dl>
+          <div class="price-stats">
             <div>
-              <dt>Open</dt>
-              <dd>{{ formatCurrency(latestPrice.open, currencyCode) }}</dd>
+              <span class="label">Day range</span>
+              <strong>
+                {{ formatCurrency(latestPrice.low, currencyCode) }} –
+                {{ formatCurrency(latestPrice.high, currencyCode) }}
+              </strong>
             </div>
             <div>
-              <dt>High</dt>
-              <dd>{{ formatCurrency(latestPrice.high, currencyCode) }}</dd>
+              <span class="label">Volume</span>
+              <strong>{{ formatNumber(latestPrice.volume) }}</strong>
             </div>
-            <div>
-              <dt>Low</dt>
-              <dd>{{ formatCurrency(latestPrice.low, currencyCode) }}</dd>
-            </div>
-            <div>
-              <dt>Volume</dt>
-              <dd>{{ formatNumber(latestPrice.volume) }}</dd>
-            </div>
-          </dl>
+          </div>
           <p class="timestamp">As of {{ formatDate(latestPrice.timestamp) }}</p>
         </aside>
       </header>
 
+      <section class="panel sentiment-panel">
+        <header>
+          <h3>Sentiment spotlight</h3>
+          <p>Stay ahead of the narrative with the latest coverage.</p>
+        </header>
+        <div v-if="featuredNews" class="sentiment-content">
+          <article class="featured-story">
+            <p class="source">{{ featuredNews.source }} • {{ formatDate(featuredNews.publishedAt) }}</p>
+            <h4>
+              <a
+                v-if="featuredNews.url"
+                :href="featuredNews.url"
+                target="_blank"
+                rel="noopener"
+              >
+                {{ featuredNews.title }} ↗
+              </a>
+              <span v-else>{{ featuredNews.title }}</span>
+            </h4>
+            <p v-if="featuredNews.content" class="body">{{ featuredNews.content }}</p>
+            <span class="sentiment-chip" :class="sentimentTone(featuredNews.sentiment)">
+              Sentiment
+              <strong v-if="featuredNews.sentiment != null">
+                {{ formatSignedNumber(featuredNews.sentiment, 2) }}
+              </strong>
+              <strong v-else>—</strong>
+            </span>
+          </article>
+          <ul v-if="secondaryNews.length" class="sentiment-feed">
+            <li v-for="item in secondaryNews" :key="item.id">
+              <article>
+                <p class="source">{{ item.source }} • {{ formatDate(item.publishedAt) }}</p>
+                <h5>
+                  <a
+                    v-if="item.url"
+                    :href="item.url"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {{ item.title }} ↗
+                  </a>
+                  <span v-else>{{ item.title }}</span>
+                </h5>
+                <footer>
+                  <span class="sentiment-chip" :class="sentimentTone(item.sentiment)">
+                    <strong v-if="item.sentiment != null">
+                      {{ formatSignedNumber(item.sentiment, 2) }}
+                    </strong>
+                    <strong v-else>—</strong>
+                  </span>
+                </footer>
+              </article>
+            </li>
+          </ul>
+        </div>
+        <p v-else class="empty-state">No recent articles recorded.</p>
+      </section>
+
       <section class="insights-grid">
-        <article class="panel price-panel">
+        <article class="panel market-panel">
           <header>
             <h3>Market pulse</h3>
             <p v-if="marketSummary">
-              Daily closes across {{ formatNumber(marketSummary.sessionCount) }} sessions
+              {{ selectedRangeLabel }} • {{ formatNumber(marketSummary.sessionCount) }} sessions
             </p>
             <p v-else>Daily closes will appear here once data is available.</p>
           </header>
+          <div v-if="rangeOptions.length && marketChartData" class="market-controls">
+            <button
+              v-for="option in rangeOptions"
+              :key="option.id"
+              type="button"
+              :class="['range-chip', { active: option.id === selectedRange }]"
+              @click="selectRange(option.id)"
+              :aria-pressed="option.id === selectedRange"
+            >
+              {{ option.label }}
+            </button>
+          </div>
           <div v-if="marketChartData" class="market-chart">
             <Line :data="marketChartData" :options="marketChartOptions" />
           </div>
@@ -166,7 +232,7 @@
         </article>
       </section>
 
-      <section class="financial-timeline">
+      <section class="panel financial-panel">
         <header>
           <h3>Financial timeline</h3>
           <p>Trendlines for revenue and profitability across fiscal years</p>
@@ -225,41 +291,6 @@
         </ul>
         <p v-else class="empty-state">No financial statements available.</p>
       </section>
-
-      <section class="news">
-        <header>
-          <h3>Latest sentiment reads</h3>
-          <p>News coverage pulled from your sample dataset</p>
-        </header>
-        <ul v-if="newsItems.length" class="news-list">
-          <li v-for="item in newsItems" :key="item.id" class="news-card">
-            <article>
-              <header>
-                <p class="source">{{ item.source }} • {{ formatDate(item.publishedAt) }}</p>
-                <h4>{{ item.title }}</h4>
-              </header>
-              <p class="body" v-if="item.content">{{ item.content }}</p>
-              <footer>
-                <span class="sentiment-chip" :class="sentimentTone(item.sentiment)">
-                  Sentiment
-                  <strong v-if="item.sentiment != null">{{ formatSignedNumber(item.sentiment, 2) }}</strong>
-                  <strong v-else>—</strong>
-                </span>
-                <a
-                  v-if="item.url"
-                  class="news-link"
-                  :href="item.url"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Read article ↗
-                </a>
-              </footer>
-            </article>
-          </li>
-        </ul>
-        <p v-else class="empty">No recent articles recorded.</p>
-      </section>
     </div>
   </section>
 </template>
@@ -308,7 +339,23 @@ const financials = computed(() => snapshot.value?.financials ?? []);
 const newsItems = computed(() => snapshot.value?.news ?? []);
 const indices = computed(() => snapshot.value?.indices ?? []);
 
+const featuredNews = computed(() => (newsItems.value.length ? newsItems.value[0] : null));
+const secondaryNews = computed(() =>
+  newsItems.value.length > 1 ? newsItems.value.slice(1, 5) : []
+);
+
 const sparklineWindow = computed(() => priceHistory.value.slice(0, 90));
+
+const rangeOptions = [
+  { id: '1M', label: '1M', days: 30 },
+  { id: '3M', label: '3M', days: 90 },
+  { id: '6M', label: '6M', days: 182 },
+  { id: '1Y', label: '1Y', days: 365 },
+  { id: '5Y', label: '5Y', days: 365 * 5 },
+  { id: 'MAX', label: 'Max', days: null }
+];
+
+const selectedRange = ref('1Y');
 
 const marketSeries = computed(() => {
   if (!priceHistory.value.length) return [];
@@ -317,15 +364,51 @@ const marketSeries = computed(() => {
   );
 });
 
+const selectedRangeOption = computed(() => {
+  return (
+    rangeOptions.find((option) => option.id === selectedRange.value) ||
+    rangeOptions[rangeOptions.length - 1]
+  );
+});
+
+const filteredMarketSeries = computed(() => {
+  if (!marketSeries.value.length) return [];
+  const option = selectedRangeOption.value;
+  if (!option || option.days == null) {
+    return marketSeries.value;
+  }
+
+  const end = new Date(marketSeries.value[marketSeries.value.length - 1].timestamp).getTime();
+  const start = end - option.days * 24 * 60 * 60 * 1000;
+
+  const filtered = marketSeries.value.filter((row) => {
+    const time = new Date(row.timestamp).getTime();
+    return Number.isFinite(time) && time >= start;
+  });
+
+  return filtered.length ? filtered : marketSeries.value;
+});
+
+const selectedRangeLabel = computed(() => {
+  const option = selectedRangeOption.value;
+  if (!option || option.days == null) {
+    return 'Full history';
+  }
+  if (filteredMarketSeries.value.length === marketSeries.value.length) {
+    return 'Full history';
+  }
+  return `${option.label} range`;
+});
+
 const marketChartData = computed(() => {
-  if (!marketSeries.value.length) return null;
+  if (!filteredMarketSeries.value.length) return null;
 
   return {
-    labels: marketSeries.value.map((row) => row.timestamp),
+    labels: filteredMarketSeries.value.map((row) => row.timestamp),
     datasets: [
       {
         label: 'Close',
-        data: marketSeries.value.map((row) => Number(row?.close ?? 0)),
+        data: filteredMarketSeries.value.map((row) => Number(row?.close ?? 0)),
         borderColor: '#60a5fa',
         backgroundColor: 'rgba(96, 165, 250, 0.18)',
         fill: true,
@@ -388,15 +471,15 @@ const marketChartOptions = computed(() => {
 });
 
 const marketSummary = computed(() => {
-  if (!marketSeries.value.length) return null;
-  const startRow = marketSeries.value[0];
-  const endRow = marketSeries.value[marketSeries.value.length - 1];
+  if (!filteredMarketSeries.value.length) return null;
+  const startRow = filteredMarketSeries.value[0];
+  const endRow = filteredMarketSeries.value[filteredMarketSeries.value.length - 1];
   const startDate = new Date(startRow.timestamp);
   const endDate = new Date(endRow.timestamp);
   const diffDays = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)));
-  const highs = marketSeries.value.map((row) => Number(row?.high ?? row?.close ?? 0));
-  const lows = marketSeries.value.map((row) => Number(row?.low ?? row?.close ?? 0));
-  const volumes = marketSeries.value.map((row) => Number(row?.volume ?? 0));
+  const highs = filteredMarketSeries.value.map((row) => Number(row?.high ?? row?.close ?? 0));
+  const lows = filteredMarketSeries.value.map((row) => Number(row?.low ?? row?.close ?? 0));
+  const volumes = filteredMarketSeries.value.map((row) => Number(row?.volume ?? 0));
   const latestClose = Number(endRow?.close ?? 0);
   const earliestClose = Number(startRow?.close ?? 0);
   const totalReturn = earliestClose ? (latestClose - earliestClose) / earliestClose : null;
@@ -407,7 +490,7 @@ const marketSummary = computed(() => {
   return {
     start: startDate,
     end: endDate,
-    sessionCount: marketSeries.value.length,
+    sessionCount: filteredMarketSeries.value.length,
     approxYears: diffDays / 365,
     high: Math.max(...highs),
     low: Math.min(...lows),
@@ -647,12 +730,12 @@ const growthMetrics = computed(() => {
   return metrics;
 });
 
-const loadSnapshot = async () => {
-  loading.value = true;
-  error.value = '';
-  snapshot.value = null;
-  const idParam = route.params.id;
-  const companyId = Number.parseInt(idParam, 10);
+  const loadSnapshot = async () => {
+    loading.value = true;
+    error.value = '';
+    snapshot.value = null;
+    const idParam = route.params.id;
+    const companyId = Number.parseInt(idParam, 10);
 
   if (Number.isNaN(companyId) || companyId <= 0) {
     error.value = 'The requested company could not be identified.';
@@ -660,14 +743,15 @@ const loadSnapshot = async () => {
     return;
   }
 
-  try {
-    const data = await fetchCompanySnapshot(companyId);
-    snapshot.value = data;
-  } catch (err) {
-    if (err.response?.status === 401) {
-      await router.push({ name: 'login', query: { redirect: route.fullPath } });
-      return;
-    }
+    try {
+      const data = await fetchCompanySnapshot(companyId);
+      snapshot.value = data;
+      selectedRange.value = '1Y';
+    } catch (err) {
+      if (err.response?.status === 401) {
+        await router.push({ name: 'login', query: { redirect: route.fullPath } });
+        return;
+      }
 
     if (err.response?.status === 404) {
       error.value = `We couldn't find data for company #${companyId}.`;
@@ -686,6 +770,17 @@ watch(
     loadSnapshot();
   }
 );
+
+watch(filteredMarketSeries, (series) => {
+  if (!series.length && marketSeries.value.length && selectedRange.value !== 'MAX') {
+    selectedRange.value = 'MAX';
+  }
+});
+
+function selectRange(optionId) {
+  if (selectedRange.value === optionId) return;
+  selectedRange.value = optionId;
+}
 
 function formatNumber(value, decimals = 0) {
   if (value == null || Number.isNaN(Number(value))) return '—';
@@ -875,6 +970,12 @@ function sentimentTone(value) {
   color: #f8fafc;
 }
 
+.metric-card .note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(191, 219, 254, 0.8);
+}
+
 .index-badges {
   list-style: none;
   margin: 0;
@@ -913,14 +1014,16 @@ function sentimentTone(value) {
   box-shadow: 0 15px 30px rgba(16, 185, 129, 0.45);
 }
 
-.price {
-  background: rgba(15, 23, 42, 0.55);
-  border-radius: 1.75rem;
-  padding: 2rem;
-  display: grid;
-  gap: 1.5rem;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+.overview .price-panel {
+  background: rgba(15, 23, 42, 0.62);
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+}
+
+.price-panel {
   align-content: start;
+  gap: 1.5rem;
 }
 
 .price-header {
@@ -928,15 +1031,15 @@ function sentimentTone(value) {
   gap: 0.35rem;
 }
 
-.price .label {
+.price-panel .label {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.75rem;
-  color: rgba(226, 232, 240, 0.7);
+  color: rgba(226, 232, 240, 0.75);
   margin: 0;
 }
 
-.price h3 {
+.price-panel h3 {
   margin: 0;
   font-size: 2.75rem;
   color: #facc15;
@@ -960,7 +1063,7 @@ function sentimentTone(value) {
 }
 
 .price-delta.flat {
-  color: #cbd5f5;
+  color: #e2e8f0;
 }
 
 .price-delta span {
@@ -989,36 +1092,62 @@ function sentimentTone(value) {
 .sparkline figcaption {
   display: flex;
   justify-content: space-between;
+  font-size: 0.8rem;
+  color: rgba(226, 232, 240, 0.75);
+}
+
+.sparkline figcaption span {
+  background: rgba(15, 23, 42, 0.35);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+}
+
+.price-stats {
+  display: grid;
+  gap: 1rem;
+}
+
+.price-stats strong {
+  font-size: 1.1rem;
+  color: #f8fafc;
+}
+
+.price-stats .label {
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.price-panel .timestamp {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(226, 240, 254, 0.7);
+}
+
+
+.sparkline {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sparkline svg {
+  width: 100%;
+  height: auto;
+}
+
+.sparkline .line {
+  fill: none;
+  stroke: rgba(96, 165, 250, 0.95);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sparkline figcaption {
+  display: flex;
+  justify-content: space-between;
   font-size: 0.75rem;
   color: rgba(226, 232, 240, 0.75);
 }
 
-.price dl {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.price dl div {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.95rem;
-  color: rgba(226, 232, 240, 0.9);
-}
-
-.price dt {
-  font-weight: 600;
-}
-
-.price dd {
-  margin: 0;
-}
-
-.price .timestamp {
-  margin: 0;
-  font-size: 0.8rem;
-  color: rgba(226, 232, 240, 0.7);
-}
 
 .insights-grid {
   display: grid;
@@ -1047,8 +1176,36 @@ function sentimentTone(value) {
   color: #475569;
 }
 
+.market-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.range-chip {
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.range-chip:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.range-chip.active {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #1d4ed8;
+}
+
 .market-chart {
-  height: 280px;
+  height: 320px;
   background: linear-gradient(180deg, rgba(226, 232, 240, 0.4), rgba(248, 250, 252, 0.85));
   border-radius: 1.25rem;
   padding: 1rem;
@@ -1109,16 +1266,20 @@ function sentimentTone(value) {
 
 @media (max-width: 768px) {
   .market-chart {
-    height: 220px;
+    height: 240px;
     padding: 0.75rem;
   }
 
   .financial-chart {
-    height: 230px;
+    height: 200px;
     padding: 0.75rem;
   }
 
   .financial-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .sentiment-content {
     grid-template-columns: 1fr;
   }
 }
@@ -1186,29 +1347,29 @@ function sentimentTone(value) {
   font-style: italic;
 }
 
-.financial-timeline {
+.financial-panel {
   background: #ffffff;
   border-radius: 1.75rem;
-  padding: 2.25rem;
-  box-shadow: 0 25px 45px rgba(15, 23, 42, 0.12);
-  border: 1px solid rgba(226, 232, 240, 0.6);
+  padding: 1.75rem;
+  box-shadow: 0 25px 45px rgba(15, 23, 42, 0.1);
+  border: 1px solid rgba(226, 232, 240, 0.55);
   display: grid;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
-.financial-timeline header h3 {
+.financial-panel header h3 {
   margin: 0;
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   color: #0f172a;
 }
 
-.financial-timeline header p {
-  margin: 0.35rem 0 0;
+.financial-panel header p {
+  margin: 0.25rem 0 0;
   color: #475569;
 }
 
 .financial-chart {
-  height: 260px;
+  height: 230px;
   background: linear-gradient(180deg, rgba(226, 232, 240, 0.45), rgba(248, 250, 252, 0.9));
   border-radius: 1.5rem;
   padding: 1rem;
@@ -1290,60 +1451,91 @@ function sentimentTone(value) {
   color: #b91c1c;
 }
 
-.news {
-  background: #ffffff;
-  border-radius: 1.75rem;
-  padding: 2.5rem;
+.sentiment-panel {
+  background: linear-gradient(140deg, rgba(30, 64, 175, 0.1), rgba(15, 118, 110, 0.05));
+  border: 1px solid rgba(148, 163, 184, 0.35);
   box-shadow: 0 25px 45px rgba(15, 23, 42, 0.12);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  display: grid;
-  gap: 1.75rem;
+  align-content: start;
 }
 
-.news header h3 {
+.sentiment-content {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.1fr);
+  align-items: stretch;
+}
+
+.featured-story {
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.9), rgba(30, 58, 138, 0.75));
+  color: #e2e8f0;
+  border-radius: 1.5rem;
+  padding: 1.75rem;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  box-shadow: 0 20px 35px rgba(15, 23, 42, 0.22);
+  display: grid;
+  gap: 1rem;
+}
+
+.featured-story h4 {
   margin: 0;
   font-size: 1.45rem;
-  color: #0f172a;
+  line-height: 1.3;
 }
 
-.news header p {
-  margin: 0.35rem 0 0;
-  color: #475569;
+.featured-story h4 a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.news-list {
+.featured-story h4 a:hover {
+  text-decoration: underline;
+}
+
+.featured-story .body {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+.sentiment-feed {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 1.75rem;
+  gap: 1rem;
 }
 
-.news-card {
-  padding: 1.5rem;
-  border-radius: 1.5rem;
-  border: 1px solid rgba(203, 213, 225, 0.7);
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.8));
-  box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
-}
-
-.news-card article {
+.sentiment-feed li article {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
   display: grid;
   gap: 0.75rem;
 }
 
-.news h4 {
+.sentiment-feed h5 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   color: #0f172a;
+}
+
+.sentiment-feed h5 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sentiment-feed h5 a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
 }
 
 .source {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #64748b;
+  color: rgba(30, 64, 175, 0.75);
 }
 
 .body {
@@ -1351,12 +1543,11 @@ function sentimentTone(value) {
   color: #475569;
 }
 
-.news footer {
+.sentiment-panel footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .sentiment-chip {
@@ -1403,13 +1594,12 @@ function sentimentTone(value) {
   color: #1d4ed8;
 }
 
-.empty {
-  margin: 0;
-  color: #475569;
-}
-
 @media (max-width: 1024px) {
   .overview {
+    grid-template-columns: 1fr;
+  }
+
+  .sentiment-content {
     grid-template-columns: 1fr;
   }
 }
