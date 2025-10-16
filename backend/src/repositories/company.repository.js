@@ -56,6 +56,7 @@ const NEWS_SELECT = `
     source,
     title,
     content,
+    url,
     published_at,
     sentiment
   from news

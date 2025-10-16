@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS news (
     source VARCHAR(255) NOT NULL,
     title TEXT NOT NULL,
     content TEXT,
+    url TEXT,
     published_at TIMESTAMPTZ NOT NULL,
     sentiment DOUBLE PRECISION,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
