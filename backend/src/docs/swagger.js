@@ -4,7 +4,7 @@ export const swaggerDocument = {
     title: 'Sentimark API',
     description:
       'API documentation for the Sentimark sentiment platform. Endpoints surface company discovery, authentication, and sample sentiment feeds.',
-    version: '0.3.0'
+    version: '0.3.1'
   },
   servers: [
     {
@@ -44,7 +44,7 @@ export const swaggerDocument = {
         }
       }
     },
-    '/api/companies/{symbol}': {
+    '/api/companies/{companyId}': {
       get: {
         summary: 'Retrieve a detailed company snapshot',
         security: [{
@@ -52,12 +52,15 @@ export const swaggerDocument = {
         }],
         parameters: [
           {
-            name: 'symbol',
+            name: 'companyId',
             in: 'path',
             required: true,
-            description: 'Ticker symbol to query',
+            description:
+              'Numeric company identifier returned by the search endpoint. Required to disambiguate tickers reused across exchanges.',
             schema: {
-              type: 'string'
+              type: 'integer',
+              minimum: 1,
+              example: 1
             }
           }
         ],
@@ -104,6 +107,9 @@ export const swaggerDocument = {
               }
             }
           },
+          400: {
+            description: 'Invalid company identifier'
+          },
           401: {
             description: 'Authentication required'
           },
@@ -113,17 +119,20 @@ export const swaggerDocument = {
         }
       }
     },
-    '/api/companies/{symbol}/news': {
+    '/api/companies/{companyId}/news': {
       get: {
         summary: 'Retrieve sentiment news for a company',
         parameters: [
           {
-            name: 'symbol',
+            name: 'companyId',
             in: 'path',
             required: true,
-            description: 'Ticker symbol to query',
+            description:
+              'Numeric company identifier returned by the search endpoint. Required to disambiguate tickers reused across exchanges.',
             schema: {
-              type: 'string'
+              type: 'integer',
+              minimum: 1,
+              example: 1
             }
           }
         ],
@@ -135,10 +144,6 @@ export const swaggerDocument = {
                 schema: {
                   type: 'object',
                   properties: {
-                    symbol: {
-                      type: 'string',
-                      example: 'AAPL'
-                    },
                     company: {
                       $ref: '#/components/schemas/Company'
                     },
@@ -152,6 +157,9 @@ export const swaggerDocument = {
                 }
               }
             }
+          },
+          400: {
+            description: 'Invalid company identifier'
           },
           404: {
             description: 'Company not found'
@@ -267,6 +275,11 @@ export const swaggerDocument = {
             type: 'number',
             format: 'double',
             example: 2800000000000
+          },
+          listing: {
+            type: 'string',
+            example: 'AAPL@NASDAQ',
+            description: 'Upper-cased ticker and exchange pairing used to disambiguate duplicate tickers'
           }
         }
       },

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../utils/async-handler.js';
 import { fetchCompanyNews } from '../services/company-news-client.js';
 import {
-  findCompanyBySymbol,
+  findCompanyById,
   getCompanySnapshot,
   listCompanies,
   searchCompanies
@@ -28,20 +28,25 @@ router.get(
 );
 
 router.get(
-  '/:symbol/news',
+  '/:companyId/news',
   asyncHandler(async (req, res) => {
-    const symbol = req.params.symbol.toString().toUpperCase();
-    const company = await findCompanyBySymbol(symbol);
+    const companyId = Number.parseInt(req.params.companyId, 10);
 
-    if (!company) {
-      res.status(404).json({ message: `Company with symbol ${symbol} was not found.` });
+    if (Number.isNaN(companyId) || companyId <= 0) {
+      res.status(400).json({ message: 'Company id must be a positive integer.' });
       return;
     }
 
-    const items = await fetchCompanyNews(symbol);
+    const company = await findCompanyById(companyId);
+
+    if (!company) {
+      res.status(404).json({ message: `Company with id ${companyId} was not found.` });
+      return;
+    }
+
+    const items = await fetchCompanyNews(company.symbol, company.exchange);
 
     res.json({
-      symbol,
       company,
       items
     });
@@ -49,14 +54,20 @@ router.get(
 );
 
 router.get(
-  '/:symbol',
+  '/:companyId',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const symbol = req.params.symbol.toString().toUpperCase();
-    const snapshot = await getCompanySnapshot(symbol);
+    const companyId = Number.parseInt(req.params.companyId, 10);
+
+    if (Number.isNaN(companyId) || companyId <= 0) {
+      res.status(400).json({ message: 'Company id must be a positive integer.' });
+      return;
+    }
+
+    const snapshot = await getCompanySnapshot(companyId);
 
     if (!snapshot) {
-      res.status(404).json({ message: `Company with symbol ${symbol} was not found.` });
+      res.status(404).json({ message: `Company with id ${companyId} was not found.` });
       return;
     }
 

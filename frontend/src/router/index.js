@@ -16,7 +16,7 @@ const routes = [
     component: LoginView
   },
   {
-    path: '/companies/:symbol',
+    path: '/companies/:id',
     name: 'company-detail',
     component: CompanyDetailView,
     meta: { requiresAuth: true }

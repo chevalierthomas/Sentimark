@@ -79,16 +79,17 @@ const INDEX_SELECT = `
 function mapCompanyRow(row) {
   return {
     id: row.id,
-    symbol: row.symbol,
+    symbol: row.symbol?.toUpperCase?.() ?? row.symbol,
     name: row.name,
-    exchange: row.exchange,
+    exchange: row.exchange?.toUpperCase?.() ?? row.exchange,
     sector: row.sector,
     industry: row.industry,
     country: row.country,
     website: row.website,
     foundedYear: row.founded_year,
     employees: row.employees,
-    marketCap: row.market_cap == null ? null : Number(row.market_cap)
+    marketCap: row.market_cap == null ? null : Number(row.market_cap),
+    listing: `${row.symbol?.toUpperCase?.() ?? row.symbol}@${row.exchange?.toUpperCase?.() ?? row.exchange}`
   };
 }
 
@@ -141,7 +142,7 @@ function mapIndexRow(row) {
 
 export async function listCompanies(limit = 10) {
   const { rows } = await db.query(
-    `${SEARCH_SELECT} order by market_cap desc nulls last, symbol asc limit $1`,
+    `${SEARCH_SELECT} order by market_cap desc nulls last, symbol asc, exchange asc limit $1`,
     [limit]
   );
 
@@ -171,7 +172,8 @@ export async function searchCompanies(term, limit = 12) {
           when coalesce(industry, '') ilike $1 then 6
           else 7
         end,
-        symbol asc
+        symbol asc,
+        exchange asc
      limit $3`,
     [likeTerm, prefixTerm, limit]
   );
@@ -179,12 +181,12 @@ export async function searchCompanies(term, limit = 12) {
   return rows.map(mapCompanyRow);
 }
 
-export async function findCompanyBySymbol(symbol) {
+export async function findCompanyById(id) {
   const { rows } = await db.query(
     `${DETAIL_SELECT}
-     where upper(symbol) = upper($1)
+     where id = $1
      limit 1`,
-    [symbol]
+    [id]
   );
 
   const company = rows[0];
@@ -192,12 +194,34 @@ export async function findCompanyBySymbol(symbol) {
   return company ? mapCompanyRow(company) : null;
 }
 
-export async function getCompanySnapshot(symbol, { priceLimit = 30, financialLimit = 4, newsLimit = 5 } = {}) {
+export async function findCompanyBySymbol(symbol, exchange) {
+  const params = [symbol];
+  let whereClause = 'where upper(symbol) = upper($1)';
+
+  if (exchange) {
+    params.push(exchange);
+    whereClause += ' and upper(exchange) = upper($2)';
+  }
+
   const { rows } = await db.query(
     `${DETAIL_SELECT}
-     where upper(symbol) = upper($1)
+     ${whereClause}
+     order by market_cap desc nulls last, exchange asc
      limit 1`,
-    [symbol]
+    params
+  );
+
+  const company = rows[0];
+
+  return company ? mapCompanyRow(company) : null;
+}
+
+export async function getCompanySnapshot(id, { priceLimit = 30, financialLimit = 4, newsLimit = 5 } = {}) {
+  const { rows } = await db.query(
+    `${DETAIL_SELECT}
+     where id = $1
+     limit 1`,
+    [id]
   );
 
   const companyRow = rows[0];

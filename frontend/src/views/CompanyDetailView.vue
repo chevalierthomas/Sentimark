@@ -175,10 +175,17 @@ const loadSnapshot = async () => {
   loading.value = true;
   error.value = '';
   snapshot.value = null;
-  const symbol = route.params.symbol?.toString().toUpperCase();
+  const idParam = route.params.id;
+  const companyId = Number.parseInt(idParam, 10);
+
+  if (Number.isNaN(companyId) || companyId <= 0) {
+    error.value = 'The requested company could not be identified.';
+    loading.value = false;
+    return;
+  }
 
   try {
-    const data = await fetchCompanySnapshot(symbol);
+    const data = await fetchCompanySnapshot(companyId);
     snapshot.value = data;
   } catch (err) {
     if (err.response?.status === 401) {
@@ -187,7 +194,7 @@ const loadSnapshot = async () => {
     }
 
     if (err.response?.status === 404) {
-      error.value = `We couldn't find data for ${symbol}.`;
+      error.value = `We couldn't find data for company #${companyId}.`;
     } else {
       error.value = 'Unable to load company insights. Please try again later.';
     }
@@ -198,7 +205,7 @@ const loadSnapshot = async () => {
 
 onMounted(loadSnapshot);
 watch(
-  () => route.params.symbol,
+  () => route.params.id,
   () => {
     loadSnapshot();
   }

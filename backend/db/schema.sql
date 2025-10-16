@@ -1,6 +1,7 @@
 -- Sentimark database schema
 -- Enable extensions used by the application
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -14,12 +15,12 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS companies (
     id SERIAL PRIMARY KEY,
-    symbol VARCHAR(16) NOT NULL UNIQUE,
+    symbol CITEXT NOT NULL,
     name VARCHAR(255) NOT NULL,
     sector VARCHAR(120),
     industry VARCHAR(120),
     country VARCHAR(120),
-    exchange VARCHAR(120),
+    exchange CITEXT NOT NULL,
     website TEXT,
     founded_year INT,
     employees INT,
@@ -27,6 +28,10 @@ CREATE TABLE IF NOT EXISTS companies (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+DROP INDEX IF EXISTS companies_symbol_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_symbol_exchange_unique
+    ON companies (symbol, exchange);
 
 CREATE TABLE IF NOT EXISTS stock_prices (
     id BIGSERIAL PRIMARY KEY,
@@ -102,6 +107,7 @@ FOR EACH ROW
 EXECUTE PROCEDURE set_updated_at();
 
 CREATE INDEX IF NOT EXISTS idx_companies_symbol ON companies (symbol);
+CREATE INDEX IF NOT EXISTS idx_companies_exchange ON companies (exchange);
 CREATE INDEX IF NOT EXISTS idx_companies_name ON companies USING GIN (to_tsvector('english', name));
 CREATE INDEX IF NOT EXISTS idx_stock_prices_company_timestamp ON stock_prices (company_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_news_company_published_at ON news (company_id, published_at DESC);

@@ -59,10 +59,10 @@ const router = useRouter();
 const auth = useAuth();
 
 const onSelection = (result) => {
-  if (result.symbol) {
-    const symbol = result.symbol?.toString().toUpperCase?.() ?? result.symbol;
-    const destination = { name: 'company-detail', params: { symbol } };
+  if (result?.id != null) {
+    const destination = { name: 'company-detail', params: { id: result.id } };
     const resolved = router.resolve(destination);
+    selection.value = null;
     if (auth.isAuthenticated.value) {
       router.push(destination);
     } else {

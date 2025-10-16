@@ -20,12 +20,13 @@
       <ul v-if="showSuggestions && suggestions.length" class="suggestions">
         <li
           v-for="(suggestion, index) in suggestions"
-          :key="suggestion.symbol"
+          :key="suggestion.id"
           :class="{ active: highlightedIndex === index }"
           @mousedown.prevent="selectSuggestion(suggestion)"
         >
           <span class="suggestion-symbol">{{ suggestion.symbol }}</span>
           <span class="suggestion-name">{{ suggestion.name }}</span>
+          <span class="suggestion-exchange">{{ suggestion.exchange }}</span>
         </li>
       </ul>
       <p v-else-if="showSuggestions && !loading && !suggestions.length" class="empty-state">
@@ -104,8 +105,10 @@ const onEnter = () => {
 
 const selectSuggestion = (suggestion) => {
   const normalizedSymbol = suggestion.symbol?.toUpperCase?.() ?? suggestion.symbol;
-  query.value = `${normalizedSymbol} — ${suggestion.name}`;
-  emit('select', { ...suggestion, symbol: normalizedSymbol });
+  const exchangeLabel = suggestion.exchange?.toString?.().toUpperCase?.() ?? suggestion.exchange;
+  const displayLabel = exchangeLabel ? `${normalizedSymbol} (${exchangeLabel}) — ${suggestion.name}` : `${normalizedSymbol} — ${suggestion.name}`;
+  query.value = displayLabel;
+  emit('select', { ...suggestion, symbol: normalizedSymbol, exchange: exchangeLabel });
   showSuggestions.value = false;
 };
 
@@ -217,8 +220,10 @@ input[type='search']:focus {
 }
 
 .suggestions li {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.85rem 1.25rem;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -236,6 +241,18 @@ input[type='search']:focus {
 
 .suggestion-name {
   color: #475569;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-exchange {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  text-align: right;
+  letter-spacing: 0.08em;
 }
 
 .empty-state {

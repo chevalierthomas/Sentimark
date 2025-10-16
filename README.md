@@ -37,8 +37,8 @@ Create a `.env` file based on `.env.example` if you need to override the default
 The backend exposes:
 
 - `GET /api/companies` – search endpoint with server-side filtering backed by PostgreSQL
-- `GET /api/companies/:symbol` – detailed fundamentals and news snapshot (requires a bearer token)
-- `GET /api/companies/:symbol/news` – proxies sentiment headlines via Axios (falls back to demo data when no API is configured)
+- `GET /api/companies/:companyId` – detailed fundamentals and news snapshot (requires a bearer token)
+- `GET /api/companies/:companyId/news` – proxies sentiment headlines via Axios (falls back to demo data when no API is configured)
 - `POST /api/auth/login` – credential check returning short-lived JWTs using database-backed users
 
 Requests to the snapshot endpoint must include an `Authorization: Bearer <accessToken>` header
@@ -65,7 +65,7 @@ Interactive API documentation is available once the server is running at `http:/
 
 Sentimark uses PostgreSQL for persistent storage. A schema and seed dataset are included under `backend/db/` and define:
 
-- `companies` – canonical reference data for issuers (ticker, exchange, fundamentals)
+- `companies` – canonical reference data for issuers (ticker, exchange, fundamentals) with case-insensitive ticker and exchange pairs so duplicated tickers across markets can coexist
 - `stock_prices` – time series of daily price and volume snapshots
 - `financials` – annual fundamentals such as revenue, EPS, and free cash flow
 - `news` – curated sentiment scores for recent company headlines
@@ -93,7 +93,7 @@ This will launch PostgreSQL 15 with persistent storage and apply the schema plus
 
 3. Configure the connection in `backend/.env`. You can either set a `DATABASE_URL` or individual connection fields (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`). Set `DB_SSL=true` if your provider requires TLS.
 
-> The seed user is `avery@sentimark.ai` with password `Sentimark!2024`. The seed companies cover major tickers across US, EU, and APAC exchanges.
+> The seed user is `avery@sentimark.ai` with password `Sentimark!2024`. The seed companies cover major tickers across US, EU, and APAC exchanges, including duplicate “DELTA” listings on NYSE and TWSE to demonstrate how identical tickers are disambiguated by exchange.
 
 ## Development notes
 
