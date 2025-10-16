@@ -64,7 +64,10 @@ router.get(
       return;
     }
 
-    const snapshot = await getCompanySnapshot(companyId);
+    const snapshot = await getCompanySnapshot(companyId, {
+      priceLimit: 3650,
+      financialLimit: 10
+    });
 
     if (!snapshot) {
       res.status(404).json({ message: `Company with id ${companyId} was not found.` });

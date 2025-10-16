@@ -100,20 +100,45 @@
         <article class="panel price-panel">
           <header>
             <h3>Market pulse</h3>
-            <p>Last {{ priceHistory.length }} sessions</p>
+            <p v-if="marketSummary">
+              Daily closes across {{ formatNumber(marketSummary.sessionCount) }} sessions
+            </p>
+            <p v-else>Daily closes will appear here once data is available.</p>
           </header>
-          <ul v-if="priceHistory.length" class="price-history">
-            <li v-for="price in priceHistory" :key="price.timestamp">
-              <div class="row">
-                <time :datetime="price.timestamp">{{ formatDate(price.timestamp) }}</time>
-                <span class="close">{{ formatCurrency(price.close, price.currency) }}</span>
-              </div>
-              <p class="range">
-                <span>High {{ formatCurrency(price.high, price.currency) }}</span>
-                <span>Low {{ formatCurrency(price.low, price.currency) }}</span>
+          <div v-if="marketChartData" class="market-chart">
+            <Line :data="marketChartData" :options="marketChartOptions" />
+          </div>
+          <div v-if="marketSummary" class="market-summary">
+            <div>
+              <span class="label">Span</span>
+              <strong>{{ formatDateOnly(marketSummary.start) }} – {{ formatDateOnly(marketSummary.end) }}</strong>
+              <p>
+                {{ formatNumber(marketSummary.sessionCount) }} sessions (~{{ marketApproxYearsLabel }} yrs)
               </p>
-            </li>
-          </ul>
+            </div>
+            <div>
+              <span class="label">Range</span>
+              <strong>
+                {{ formatCurrency(marketSummary.low, currencyCode) }} –
+                {{ formatCurrency(marketSummary.high, currencyCode) }}
+              </strong>
+              <p>
+                From {{ formatCurrency(marketSummary.earliestClose, currencyCode) }} to
+                {{ formatCurrency(marketSummary.latestClose, currencyCode) }}
+              </p>
+            </div>
+            <div>
+              <span class="label">Average volume</span>
+              <strong>{{ formatNumber(marketSummary.averageVolume) }}</strong>
+              <p v-if="marketSummary.totalReturn != null">
+                Total return
+                <span :class="['delta', marketSummary.totalReturn >= 0 ? 'up' : 'down']">
+                  {{ formatSignedPercent(marketSummary.totalReturn) }}
+                </span>
+              </p>
+              <p v-else>—</p>
+            </div>
+          </div>
           <p v-else class="empty-state">No price points available.</p>
         </article>
 
@@ -144,37 +169,36 @@
       <section class="financial-timeline">
         <header>
           <h3>Financial timeline</h3>
-          <p>Multi-year revenue and profitability snapshots</p>
+          <p>Trendlines for revenue and profitability across fiscal years</p>
         </header>
-        <ol v-if="financialTimeline.length">
-          <li v-for="row in financialTimeline" :key="row.fiscalYear">
+        <div v-if="financialChartData" class="financial-chart">
+          <Bar :data="financialChartData" :options="financialChartOptions" />
+        </div>
+        <ul v-if="financialTimeline.length" class="financial-cards">
+          <li v-for="row in financialTimeline" :key="row.fiscalYear" class="financial-card">
             <article>
               <header>
                 <h4>{{ row.fiscalYear }}</h4>
-                <p>
-                  {{ formatCurrency(row.revenue, currencyCode) }} revenue •
-                  {{ formatCurrency(row.netIncome, currencyCode) }} net income
-                </p>
+                <p>{{ formatCurrency(row.revenue, currencyCode) }} revenue</p>
               </header>
-              <div class="bars">
-                <div class="bar">
-                  <span class="label">Revenue</span>
-                  <div class="track">
-                    <span class="fill" :style="{ width: `${row.revenueProgress}%` }"></span>
-                  </div>
+              <dl>
+                <div>
+                  <dt>Net income</dt>
+                  <dd :class="{ negative: row.netIncome < 0 }">
+                    {{ formatCurrency(row.netIncome, currencyCode) }}
+                  </dd>
                 </div>
-                <div class="bar">
-                  <span class="label">Net income</span>
-                  <div class="track">
-                    <span
-                      class="fill"
-                      :class="{ negative: row.netIncome < 0 }"
-                      :style="{ width: `${row.incomeProgress}%` }"
-                    ></span>
-                  </div>
+                <div>
+                  <dt>Free cash flow</dt>
+                  <dd :class="{ negative: row.freeCashFlow < 0 }">
+                    {{
+                      formatCurrency(row.freeCashFlow, currencyCode, {
+                        notation: 'compact',
+                        maximumFractionDigits: 2
+                      })
+                    }}
+                  </dd>
                 </div>
-              </div>
-              <dl class="financial-metrics">
                 <div>
                   <dt>EPS</dt>
                   <dd>{{ formatNumber(row.eps, 2) }}</dd>
@@ -195,21 +219,10 @@
                   <dt>Debt / equity</dt>
                   <dd>{{ row.debtToEquity != null ? formatNumber(row.debtToEquity, 2) : '—' }}</dd>
                 </div>
-                <div>
-                  <dt>Free cash flow</dt>
-                  <dd>
-                    {{
-                      formatCurrency(row.freeCashFlow, currencyCode, {
-                        notation: 'compact',
-                        maximumFractionDigits: 2
-                      })
-                    }}
-                  </dd>
-                </div>
               </dl>
             </article>
           </li>
-        </ol>
+        </ul>
         <p v-else class="empty-state">No financial statements available.</p>
       </section>
 
@@ -254,7 +267,32 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Line, Bar } from 'vue-chartjs';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  BarController,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
 import { fetchCompanySnapshot } from '../api/companies';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  BarController,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const route = useRoute();
 const router = useRouter();
@@ -265,15 +303,131 @@ const error = ref('');
 const company = computed(() => snapshot.value?.company ?? {});
 const latestPrice = computed(() => snapshot.value?.latestPrice ?? null);
 const currencyCode = computed(() => latestPrice.value?.currency ?? 'USD');
-const priceHistory = computed(() => (snapshot.value?.priceHistory ?? []).slice(0, 10));
+const priceHistory = computed(() => snapshot.value?.priceHistory ?? []);
 const financials = computed(() => snapshot.value?.financials ?? []);
 const newsItems = computed(() => snapshot.value?.news ?? []);
 const indices = computed(() => snapshot.value?.indices ?? []);
 
+const sparklineWindow = computed(() => priceHistory.value.slice(0, 90));
+
+const marketSeries = computed(() => {
+  if (!priceHistory.value.length) return [];
+  return [...priceHistory.value].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+});
+
+const marketChartData = computed(() => {
+  if (!marketSeries.value.length) return null;
+
+  return {
+    labels: marketSeries.value.map((row) => row.timestamp),
+    datasets: [
+      {
+        label: 'Close',
+        data: marketSeries.value.map((row) => Number(row?.close ?? 0)),
+        borderColor: '#60a5fa',
+        backgroundColor: 'rgba(96, 165, 250, 0.18)',
+        fill: true,
+        tension: 0.25,
+        pointRadius: 0,
+        borderWidth: 2
+      }
+    ]
+  };
+});
+
+const marketChartOptions = computed(() => {
+  const currency = currencyCode.value;
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    elements: { point: { radius: 0, hoverRadius: 3 } },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0f172a',
+        titleColor: '#f8fafc',
+        bodyColor: '#f8fafc',
+        callbacks: {
+          title(items) {
+            if (!items.length) return '';
+            return formatDateOnly(items[0].label);
+          },
+          label(context) {
+            return `Close: ${formatCurrency(context.parsed.y, currency)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: {
+          maxTicksLimit: 8,
+          color: 'rgba(148, 163, 184, 0.95)',
+          callback(value) {
+            const label = this.getLabelForValue(value);
+            return formatChartTick(label);
+          }
+        }
+      },
+      y: {
+        grid: { color: 'rgba(148, 163, 184, 0.18)', drawBorder: false },
+        ticks: {
+          color: '#475569',
+          callback(value) {
+            return formatCurrency(value, currency);
+          }
+        }
+      }
+    }
+  };
+});
+
+const marketSummary = computed(() => {
+  if (!marketSeries.value.length) return null;
+  const startRow = marketSeries.value[0];
+  const endRow = marketSeries.value[marketSeries.value.length - 1];
+  const startDate = new Date(startRow.timestamp);
+  const endDate = new Date(endRow.timestamp);
+  const diffDays = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)));
+  const highs = marketSeries.value.map((row) => Number(row?.high ?? row?.close ?? 0));
+  const lows = marketSeries.value.map((row) => Number(row?.low ?? row?.close ?? 0));
+  const volumes = marketSeries.value.map((row) => Number(row?.volume ?? 0));
+  const latestClose = Number(endRow?.close ?? 0);
+  const earliestClose = Number(startRow?.close ?? 0);
+  const totalReturn = earliestClose ? (latestClose - earliestClose) / earliestClose : null;
+  const volumeTotal = volumes.reduce((sum, value) => sum + value, 0);
+  const averageVolume =
+    volumes.length && Number.isFinite(volumeTotal) ? volumeTotal / volumes.length : 0;
+
+  return {
+    start: startDate,
+    end: endDate,
+    sessionCount: marketSeries.value.length,
+    approxYears: diffDays / 365,
+    high: Math.max(...highs),
+    low: Math.min(...lows),
+    averageVolume: Math.round(averageVolume),
+    latestClose,
+    earliestClose,
+    totalReturn
+  };
+});
+
+const marketApproxYearsLabel = computed(() => {
+  const summary = marketSummary.value;
+  if (!summary) return '';
+  return summary.approxYears >= 0.1 ? summary.approxYears.toFixed(1) : '<0.1';
+});
+
 const priceTrend = computed(() => {
-  if (priceHistory.value.length < 2) return null;
-  const latest = priceHistory.value[0];
-  const baseline = priceHistory.value[priceHistory.value.length - 1];
+  if (sparklineWindow.value.length < 2) return null;
+  const latest = sparklineWindow.value[0];
+  const baseline = sparklineWindow.value[sparklineWindow.value.length - 1];
   const latestClose = Number(latest?.close ?? 0);
   const baselineClose = Number(baseline?.close ?? 0);
   const change = latestClose - baselineClose;
@@ -283,8 +437,8 @@ const priceTrend = computed(() => {
 });
 
 const priceSparkline = computed(() => {
-  if (!priceHistory.value.length) return null;
-  const ordered = [...priceHistory.value].reverse();
+  if (!sparklineWindow.value.length) return null;
+  const ordered = [...sparklineWindow.value].reverse();
   const width = 100;
   const height = 40;
   if (ordered.length === 1) {
@@ -326,28 +480,88 @@ const priceSparkline = computed(() => {
 
 const financialTimeline = computed(() => {
   if (!financials.value.length) return [];
-  const sorted = [...financials.value].sort((a, b) => b.fiscalYear - a.fiscalYear);
-  const revenueValues = sorted.map((row) => Number(row?.revenue ?? 0));
-  const incomeValues = sorted.map((row) => Math.abs(Number(row?.netIncome ?? 0)));
-  const revenueMax = Math.max(...revenueValues, 0);
-  const incomeMax = Math.max(...incomeValues, 0);
+  return [...financials.value].sort((a, b) => b.fiscalYear - a.fiscalYear);
+});
 
-  return sorted.map((row) => {
-    const revenue = Number(row?.revenue ?? 0);
-    const income = Number(row?.netIncome ?? 0);
-    const revenueProgress = revenueMax
-      ? Math.max(6, (Math.max(revenue, 0) / revenueMax) * 100)
-      : 0;
-    const incomeProgress = incomeMax
-      ? Math.max(6, (Math.abs(income) / incomeMax) * 100)
-      : 0;
+const financialSeries = computed(() => {
+  if (!financials.value.length) return [];
+  return [...financials.value].sort((a, b) => a.fiscalYear - b.fiscalYear);
+});
 
-    return {
-      ...row,
-      revenueProgress: Number.isFinite(revenueProgress) ? revenueProgress : 0,
-      incomeProgress: Number.isFinite(incomeProgress) ? incomeProgress : 0
-    };
-  });
+const financialChartData = computed(() => {
+  if (!financialSeries.value.length) return null;
+
+  return {
+    labels: financialSeries.value.map((row) => row.fiscalYear),
+    datasets: [
+      {
+        label: 'Revenue',
+        data: financialSeries.value.map((row) => Number(row?.revenue ?? 0)),
+        backgroundColor: 'rgba(56, 189, 248, 0.75)',
+        borderRadius: 12,
+        borderSkipped: false,
+        maxBarThickness: 38
+      },
+      {
+        label: 'Net income',
+        data: financialSeries.value.map((row) => Number(row?.netIncome ?? 0)),
+        backgroundColor(context) {
+          return context.parsed.y >= 0
+            ? 'rgba(34, 197, 94, 0.75)'
+            : 'rgba(248, 113, 113, 0.75)';
+        },
+        borderRadius: 12,
+        borderSkipped: false,
+        maxBarThickness: 38
+      }
+    ]
+  };
+});
+
+const financialChartOptions = computed(() => {
+  const currency = currencyCode.value;
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#0f172a',
+          usePointStyle: true,
+          boxWidth: 12,
+          font: { weight: '600' }
+        }
+      },
+      tooltip: {
+        backgroundColor: '#0f172a',
+        titleColor: '#f8fafc',
+        bodyColor: '#f8fafc',
+        callbacks: {
+          label(context) {
+            return `${context.dataset.label}: ${formatCurrency(context.parsed.y, currency)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#475569' }
+      },
+      y: {
+        grid: { color: 'rgba(148, 163, 184, 0.2)', drawBorder: false },
+        ticks: {
+          color: '#475569',
+          callback(value) {
+            return formatCurrency(value, currency);
+          }
+        }
+      }
+    }
+  };
 });
 
 const latestFinancialYear = computed(() => financialTimeline.value[0]?.fiscalYear ?? null);
@@ -532,6 +746,19 @@ function formatSignedPercent(value) {
   if (numeric > 0) return `+${magnitude}%`;
   if (numeric < 0) return `-${magnitude}%`;
   return `${magnitude}%`;
+}
+
+function formatDateOnly(value) {
+  if (!value) return '—';
+  const date = value instanceof Date ? value : new Date(value);
+  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(date);
+}
+
+function formatChartTick(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return '';
+  return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(date);
 }
 
 function formatDate(value) {
@@ -820,43 +1047,80 @@ function sentimentTone(value) {
   color: #475569;
 }
 
-.price-history {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.85rem;
+.market-chart {
+  height: 280px;
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0.4), rgba(248, 250, 252, 0.85));
+  border-radius: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  overflow: hidden;
 }
 
-.price-history li {
-  padding: 0.85rem 1rem;
-  border-radius: 1rem;
-  background: rgba(241, 245, 249, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+.market-chart :deep(canvas) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.market-summary {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 1.25rem;
+}
+
+.market-summary > div {
   display: grid;
   gap: 0.35rem;
 }
 
-.price-history .row {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 600;
+.market-summary .label {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: #64748b;
+}
+
+.market-summary strong {
+  font-size: 1.1rem;
   color: #0f172a;
 }
 
-.price-history time {
-  font-size: 0.9rem;
-}
-
-.price-history .close {
-  font-size: 1rem;
-}
-
-.price-history .range {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
+.market-summary p {
+  margin: 0;
   color: #475569;
+  font-size: 0.85rem;
+}
+
+.market-summary .delta {
+  margin-left: 0.25rem;
+  font-weight: 600;
+}
+
+.market-summary .delta.up {
+  color: #16a34a;
+}
+
+.market-summary .delta.down {
+  color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .market-chart {
+    height: 220px;
+    padding: 0.75rem;
+  }
+
+  .financial-chart {
+    height: 230px;
+    padding: 0.75rem;
+  }
+
+  .financial-card dl {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ratios-panel .growth-chips {
@@ -925,11 +1189,11 @@ function sentimentTone(value) {
 .financial-timeline {
   background: #ffffff;
   border-radius: 1.75rem;
-  padding: 2.5rem;
+  padding: 2.25rem;
   box-shadow: 0 25px 45px rgba(15, 23, 42, 0.12);
   border: 1px solid rgba(226, 232, 240, 0.6);
   display: grid;
-  gap: 1.75rem;
+  gap: 1.5rem;
 }
 
 .financial-timeline header h3 {
@@ -943,85 +1207,87 @@ function sentimentTone(value) {
   color: #475569;
 }
 
-.financial-timeline ol {
+.financial-chart {
+  height: 260px;
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0.45), rgba(248, 250, 252, 0.9));
+  border-radius: 1.5rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  overflow: hidden;
+}
+
+.financial-chart :deep(canvas) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.financial-cards {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 1.5rem;
-}
-
-.financial-timeline li article {
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9), rgba(226, 232, 240, 0.75));
-  border-radius: 1.5rem;
-  padding: 1.5rem;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
   gap: 1.25rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  align-items: stretch;
 }
 
-.financial-timeline li header h4 {
+.financial-cards::-webkit-scrollbar {
+  height: 6px;
+}
+
+.financial-cards::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 999px;
+}
+
+.financial-card article {
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(226, 232, 240, 0.78));
+  border-radius: 1.35rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(203, 213, 225, 0.55);
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+  display: grid;
+  gap: 1rem;
+  min-height: 100%;
+}
+
+.financial-card header h4 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   color: #0f172a;
 }
 
-.financial-timeline li header p {
+.financial-card header p {
   margin: 0.35rem 0 0;
   color: #475569;
 }
 
-.bars {
+.financial-card dl {
+  margin: 0;
   display: grid;
-  gap: 0.75rem;
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.bar {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.bar .label {
+.financial-card dt {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #64748b;
 }
 
-.track {
-  position: relative;
-  width: 100%;
-  height: 0.65rem;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.25);
-  overflow: hidden;
-}
-
-.fill {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.9), rgba(30, 64, 175, 0.9));
-}
-
-.fill.negative {
-  background: linear-gradient(90deg, rgba(248, 113, 113, 0.85), rgba(220, 38, 38, 0.9));
-}
-
-.financial-metrics {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-}
-
-.financial-metrics dt {
+.financial-card dd {
+  margin: 0.1rem 0 0;
   font-weight: 600;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-.financial-metrics dd {
-  margin: 0;
-  color: #475569;
+.financial-card dd.negative {
+  color: #b91c1c;
 }
 
 .news {

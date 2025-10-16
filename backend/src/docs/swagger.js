@@ -80,12 +80,15 @@ export const swaggerDocument = {
                     },
                     priceHistory: {
                       type: 'array',
+                      description:
+                        'Daily OHLC candles for up to the latest 3,650 trading sessions (approximately ten years of history).',
                       items: {
                         $ref: '#/components/schemas/StockPrice'
                       }
                     },
                     financials: {
                       type: 'array',
+                      description: 'Up to the ten most recent fiscal years of financial statements.',
                       items: {
                         $ref: '#/components/schemas/FinancialSnapshot'
                       }
