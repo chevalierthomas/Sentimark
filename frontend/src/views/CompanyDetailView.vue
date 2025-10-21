@@ -37,9 +37,6 @@
               <span v-if="latestPrice" class="note">Trades in {{ currencyCode }}</span>
             </div>
           </div>
-          <ul v-if="indices.length" class="index-badges">
-            <li v-for="index in indices" :key="index.id">{{ index.name }}</li>
-          </ul>
           <a
             v-if="company.website"
             class="website"
@@ -50,46 +47,6 @@
             Visit corporate site ↗
           </a>
         </div>
-        <aside class="panel price-panel" v-if="latestPrice">
-          <header class="price-header">
-            <p class="label">Latest close</p>
-            <h3>{{ formatCurrency(latestPrice.close, currencyCode) }}</h3>
-            <p v-if="priceTrend" class="price-delta" :class="priceTrend.direction">
-              {{ formatSignedCurrency(priceTrend.change, currencyCode) }}
-              <span v-if="priceTrend.percent != null">({{ formatSignedPercent(priceTrend.percent) }})</span>
-            </p>
-          </header>
-          <figure v-if="priceSparkline" class="sparkline">
-            <svg :viewBox="`0 0 ${priceSparkline.width} ${priceSparkline.height}`" role="img" aria-label="Recent price trend">
-              <defs>
-                <linearGradient id="sparklineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="rgba(96, 165, 250, 0.55)" />
-                  <stop offset="100%" stop-color="rgba(96, 165, 250, 0)" />
-                </linearGradient>
-              </defs>
-              <path class="area" :d="priceSparkline.area" fill="url(#sparklineGradient)" />
-              <path class="line" :d="priceSparkline.path" />
-            </svg>
-            <figcaption>
-              <span>High {{ formatCurrency(priceSparkline.max, currencyCode) }}</span>
-              <span>Low {{ formatCurrency(priceSparkline.min, currencyCode) }}</span>
-            </figcaption>
-          </figure>
-          <div class="price-stats">
-            <div>
-              <span class="label">Day range</span>
-              <strong>
-                {{ formatCurrency(latestPrice.low, currencyCode) }} –
-                {{ formatCurrency(latestPrice.high, currencyCode) }}
-              </strong>
-            </div>
-            <div>
-              <span class="label">Volume</span>
-              <strong>{{ formatNumber(latestPrice.volume) }}</strong>
-            </div>
-          </div>
-          <p class="timestamp">As of {{ formatDate(latestPrice.timestamp) }}</p>
-        </aside>
       </header>
 
       <section class="panel sentiment-panel">
